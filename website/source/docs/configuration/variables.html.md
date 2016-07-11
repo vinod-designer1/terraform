@@ -24,22 +24,26 @@ A variable configuration looks like the following:
 
 ```
 variable "key" {
-    type = "string"
+  type = "string"
 }
 
 variable "images" {
-    type = "map"
+  type = "map"
 
-	default = {
-		us-east-1 = "image-1234"
-		us-west-2 = "image-4567"
-	}
+  default = {
+    us-east-1 = "image-1234"
+    us-west-2 = "image-4567"
+  }
+}
+
+variable "zones" {
+  default = ["us-east-1a", "us-east-1b"]
 }
 ```
 
 ## Description
 
-The `variable`  block configures a single input variable for
+The `variable` block configures a single input variable for
 a Terraform configuration. Multiple variables blocks can be used to
 add multiple variables.
 
@@ -51,18 +55,14 @@ Within the block (the `{ }`) is configuration for the variable.
 These are the parameters that can be set:
 
   * `type` (optional) - If set this defines the type of the variable.
-    Valid values are `string` and `map`. In older versions of Terraform
-    this parameter did not exist, and the type was inferred from the
-    default value, defaulting to `string` if no default was set. If a
-    type is not specified, the previous behavior is maintained. It is
-    recommended to set variable types explicitly in preference to relying
-    on inferrence - this allows variables of type `map` to be set in the
-    `terraform.tfvars` file without requiring a default value to be set.
+    Valid values are `string`, `list, and `map`. If this field is omitted, the
+    variable type will be inferred based on the `default`. If no `default` is
+    provided, the type is assumed to be `string`.
 
-  * `default` (optional) - If set, this sets a default value
-    for the variable. If this isn't set, the variable is required
-    and Terraform will error if not set. The default value can be
-    a string or a mapping. This is covered in more detail below.
+  * `default` (optional) - If set, this sets a default value for the variable.
+    If this isn't set, the variable is required and Terraform will error if it
+    is not set. The default value can be a string or a mapping. This is covered
+    in more detail below.
 
   * `description` (optional) - A human-friendly description for
     the variable. This is primarily for documentation for users
