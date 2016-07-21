@@ -9,15 +9,39 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
-// FlagKV is a flag.Value implementation for parsing user variables
-// from the command-line in the format of '-var key=value'.
-type FlagKV map[string]string
+// FlagKVString is a flag.Value implementation for parsing user variables
+// from the command-line in the format of '-var key=value', where value is
+// a type intended for use as a Terraform variable
+type FlagTypedKV map[string]interface{}
 
-func (v *FlagKV) String() string {
+func (v *FlagTypedKV) String() string {
 	return ""
 }
 
-func (v *FlagKV) Set(raw string) error {
+func (v *FlagTypedKV) Set(raw string) error {
+	key, value, err := parseVarFlagAsHCL(raw)
+	if err != nil {
+		return err
+	}
+
+	if *v == nil {
+		*v = make(map[string]interface{})
+	}
+
+	(*v)[key] = value
+	return nil
+}
+
+// FlagKVString is a flag.Value implementation for parsing user variables
+// from the command-line in the format of '-var key=value', where value is
+// only ever a primitive.
+type FlagStringKV map[string]string
+
+func (v *FlagStringKV) String() string {
+	return ""
+}
+
+func (v *FlagStringKV) Set(raw string) error {
 	idx := strings.Index(raw, "=")
 	if idx == -1 {
 		return fmt.Errorf("No '=' value in arg: %s", raw)
@@ -34,7 +58,7 @@ func (v *FlagKV) Set(raw string) error {
 
 // FlagKVFile is a flag.Value implementation for parsing user variables
 // from the command line in the form of files. i.e. '-var-file=foo'
-type FlagKVFile map[string]string
+type FlagKVFile map[string]interface{}
 
 func (v *FlagKVFile) String() string {
 	return ""
@@ -47,7 +71,7 @@ func (v *FlagKVFile) Set(raw string) error {
 	}
 
 	if *v == nil {
-		*v = make(map[string]string)
+		*v = make(map[string]interface{})
 	}
 
 	for key, value := range vs {
@@ -57,7 +81,7 @@ func (v *FlagKVFile) Set(raw string) error {
 	return nil
 }
 
-func loadKVFile(rawPath string) (map[string]string, error) {
+func loadKVFile(rawPath string) (map[string]interface{}, error) {
 	path, err := homedir.Expand(rawPath)
 	if err != nil {
 		return nil, fmt.Errorf(
@@ -78,7 +102,7 @@ func loadKVFile(rawPath string) (map[string]string, error) {
 			"Error parsing %s: %s", path, err)
 	}
 
-	var result map[string]string
+	var result map[string]interface{}
 	if err := hcl.DecodeObject(&result, obj); err != nil {
 		return nil, fmt.Errorf(
 			"Error decoding Terraform vars file: %s\n\n"+
@@ -102,4 +126,34 @@ func (v *FlagStringSlice) Set(raw string) error {
 	*v = append(*v, raw)
 
 	return nil
+}
+
+// parseVariableAsHCL parses the value of a single variable as would have been specified
+// on the command line via -var or in an environment variable named TF_VAR_x, where x is
+// the name of the variable. In order to get around the restriction of HCL requiring a
+// top level object, we prepend a sentinel key, decode the user-specified value as its
+// value and pull the value back out of the resulting map.
+func parseVarFlagAsHCL(input string) (string, interface{}, error) {
+	idx := strings.Index(input, "=")
+	if idx == -1 {
+		return "", nil, fmt.Errorf("No '=' value in variable: %s", input)
+	}
+	probablyName := input[0:idx]
+
+	var decoded map[string]interface{}
+	err := hcl.Decode(&decoded, input)
+	if err != nil {
+		return "", nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL: %s", probablyName, input, err)
+	}
+
+	if len(decoded) != 1 {
+		return "", nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL. Only one value may be specified.", probablyName, input)
+	}
+
+	for k, v := range decoded {
+		return k, v, nil
+	}
+
+	// Should be unreachable
+	return "", nil, fmt.Errorf("No value for variable: %s", input)
 }

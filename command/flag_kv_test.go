@@ -8,7 +8,7 @@ import (
 )
 
 func TestFlagKV_impl(t *testing.T) {
-	var _ flag.Value = new(FlagKV)
+	var _ flag.Value = new(FlagStringKV)
 }
 
 func TestFlagKV(t *testing.T) {
@@ -49,7 +49,7 @@ func TestFlagKV(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		f := new(FlagKV)
+		f := new(FlagStringKV)
 		err := f.Set(tc.Input)
 		if err != nil != tc.Error {
 			t.Fatalf("bad error. Input: %#v", tc.Input)
