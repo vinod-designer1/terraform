@@ -59,10 +59,10 @@ These are the parameters that can be set:
     variable type will be inferred based on the `default`. If no `default` is
     provided, the type is assumed to be `string`.
 
-  * `default` (optional) - If set, this sets a default value for the variable.
-    If this isn't set, the variable is required and Terraform will error if it
-    is not set. The default value can be a string or a mapping. This is covered
-    in more detail below.
+  * `default` (optional) - This sets a default value for the variable.
+    If no default is provided, the variable is considered required and
+    Terraform will error if it is not set. The default value can be any of the
+    data types Terraform supports. This is covered in more detail below.
 
   * `description` (optional) - A human-friendly description for
     the variable. This is primarily for documentation for users
