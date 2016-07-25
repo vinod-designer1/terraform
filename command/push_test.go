@@ -10,6 +10,7 @@ import (
 	"sort"
 	"testing"
 
+	atlas "github.com/hashicorp/atlas-go/v1"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -398,8 +399,25 @@ func TestPush_tfvars(t *testing.T) {
 		"foo": "bar",
 		"bar": "foo",
 	}
-	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
-		t.Fatalf("bad: %#v", client.UpsertOptions)
+
+	// make sure these dind't go missing for some reason
+	for k, v := range variables {
+		if !reflect.DeepEqual(client.UpsertOptions.Variables[k], v) {
+			t.Fatalf("bad: %#v", client.UpsertOptions.Variables)
+		}
+	}
+
+	//now check TFVVars
+
+	tfvars := []atlas.TFVar{
+		{"bar", "foo", false},
+		{"baz", "{\n  A = \"a\"\n  B = \"b\"\n}\n", true},
+		{"fob", "[\"a\", \"b\", \"c\"]\n", true},
+		{"foo", "bar", false},
+	}
+
+	if !reflect.DeepEqual(client.UpsertOptions.TFVars, tfvars) {
+		t.Fatalf("bad tf_vars: %#v", client.UpsertOptions.TFVars)
 	}
 }
 
